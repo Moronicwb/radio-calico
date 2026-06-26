@@ -1,65 +1,129 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useRef, useCallback } from 'react';
+
+const STREAM_URL = process.env.NEXT_PUBLIC_STREAM_URL ?? '';
+
+interface SourceQuality {
+  sampleRate: number | null;
+  bitDepth: number | null;
+}
 
 export default function Home() {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [nowPlaying, setNowPlaying] = useState('');
+  const [quality, setQuality] = useState<SourceQuality>({ sampleRate: null, bitDepth: null });
+  const [loading, setLoading] = useState(false);
+
+  const detectQuality = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new AudioContext();
+      const src = audioCtxRef.current.createMediaElementSource(audio);
+      src.connect(audioCtxRef.current.destination);
+    }
+
+    let bitDepth: number | null = null;
+    try {
+      // captureStream gives access to the actual media track settings
+      const stream = (audio as HTMLAudioElement & { captureStream?: () => MediaStream }).captureStream?.();
+      const tracks = stream?.getAudioTracks?.() ?? [];
+      if (tracks.length > 0) {
+        const settings = tracks[0].getSettings() as MediaTrackSettings & { sampleSize?: number };
+        bitDepth = settings.sampleSize ?? null;
+      }
+    } catch {
+      // captureStream is not available in all environments
+    }
+
+    setQuality({
+      sampleRate: audioCtxRef.current.sampleRate,
+      bitDepth,
+    });
+  }, []);
+
+  const toggle = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      setLoading(true);
+      try {
+        detectQuality();
+        await audio.play();
+        setIsPlaying(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const formatQuality = (): string => {
+    const parts: string[] = [];
+    if (quality.bitDepth != null) parts.push(`${quality.bitDepth}-bit`);
+    if (quality.sampleRate != null) parts.push(`${quality.sampleRate / 1000} kHz`);
+    return parts.length > 0 ? parts.join(' ') : '—';
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground p-8">
+      <main className="flex w-full max-w-sm flex-col gap-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold tracking-tight">radio calico</h1>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">internet radio</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <div className="rounded-2xl border border-black/[.08] dark:border-white/[.1] bg-white dark:bg-zinc-900 p-6 flex flex-col gap-4">
+          <div className="min-h-[3rem] flex flex-col justify-center">
+            <p className="text-xs font-medium uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              now playing
+            </p>
+            <p className="mt-1 text-base font-medium truncate">
+              {nowPlaying || (isPlaying ? 'Live stream' : '—')}
+            </p>
+          </div>
+
+          <button
+            onClick={toggle}
+            disabled={loading || !STREAM_URL}
+            className="flex h-14 w-full items-center justify-center rounded-xl bg-foreground text-background text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {loading ? 'Connecting…' : isPlaying ? 'Stop' : 'Play'}
+          </button>
+
+          {!STREAM_URL && (
+            <p className="text-xs text-center text-red-500">
+              Set <code>NEXT_PUBLIC_STREAM_URL</code> to enable playback.
+            </p>
+          )}
+
+          <div className="border-t border-black/[.06] dark:border-white/[.08] pt-4">
+            <p className="text-xs font-medium uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              source quality
+            </p>
+            <p className="mt-1 text-sm font-mono">
+              {isPlaying ? formatQuality() : '—'}
+            </p>
+          </div>
         </div>
       </main>
+
+      <audio
+        ref={audioRef}
+        src={STREAM_URL}
+        crossOrigin="anonymous"
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => setIsPlaying(false)}
+        onError={() => setLoading(false)}
+      />
     </div>
   );
 }
