@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      target: dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  postgres:
+    ports:
+      - "5432:5432"
