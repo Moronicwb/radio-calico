@@ -5,15 +5,19 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 ## Stack
 
 - **Server:** Express.js (`server.js`)
-- **Database:** PostgreSQL (Docker) + Drizzle ORM
+- **Database:** PostgreSQL + Drizzle ORM
 - **Frontend:** Plain HTML, CSS, and JavaScript (`public/`)
 - **Stream:** SomaFM Underground 80s via HLS
 - **Tests:** Vitest — Node environment for API, jsdom for frontend
+- **Container:** Docker multi-stage image (dev + prod), orchestrated with Docker Compose
 
 ## Project structure
 
 ```
 ├── server.js                  # Express server, API routes, metadata polling
+├── entrypoint.sh              # Runs migrations then starts the server
+├── scripts/
+│   └── migrate.js             # Migration runner (used by Docker entrypoint)
 ├── public/
 │   ├── index.html             # Markup
 │   ├── styles.css             # All CSS (brand tokens, themes, layout)
@@ -30,17 +34,38 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 │   └── setup/
 │       ├── db-global.ts       # Creates radiocalico_test DB and runs migrations
 │       └── db-each.ts         # Truncates ratings table before each test
+├── Dockerfile                 # Multi-stage build: dev and prod targets
+├── docker-compose.yml         # Production: app + postgres, fully self-contained
+├── docker-compose.dev.yml     # Dev overrides: source volume mount, hot reload
 ├── vitest.config.ts           # Two-project Vitest config (node + jsdom)
-├── docker-compose.yml         # PostgreSQL container
 └── drizzle.config.ts          # Drizzle Kit config
 ```
 
-## Prerequisites
+## Running with Docker (recommended)
 
-- Node.js 18+
-- Docker (for PostgreSQL)
+No local Node.js or PostgreSQL required — Docker handles everything.
 
-## Getting started
+**Production:**
+```bash
+npm run docker:prod
+# or directly:
+docker compose up --build
+```
+
+**Development** (source files are mounted; saving `server.js` restarts the server automatically):
+```bash
+npm run docker:dev
+# or directly:
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+Open [http://localhost:3001](http://localhost:3001).
+
+Migrations run automatically on startup via `entrypoint.sh`.
+
+## Running locally (without Docker app)
+
+Requires Node.js 18+ and Docker (for PostgreSQL only).
 
 ```bash
 # 1. Install dependencies
@@ -49,8 +74,8 @@ npm install
 # 2. Start PostgreSQL
 npm run db:up
 
-# 3. Copy and fill in environment variables
-cp .env.example .env.local   # set DATABASE_URL
+# 3. Set environment variables
+cp .env.example .env.local   # then set DATABASE_URL
 
 # 4. Run migrations
 npm run db:migrate
@@ -59,13 +84,13 @@ npm run db:migrate
 npm start
 ```
 
-Open [http://localhost:3001](http://localhost:3001).
-
 ## Environment variables
 
 | Variable | Example | Description |
 |---|---|---|
 | `DATABASE_URL` | `postgresql://radiocalico:localdev@localhost:5432/radiocalico` | PostgreSQL connection string |
+
+In Docker, this is set automatically in `docker-compose.yml`. For local dev, set it in `.env.local`.
 
 ## API routes
 
@@ -81,7 +106,7 @@ User identity is derived server-side from IP + User-Agent — no login required.
 ## Database commands
 
 ```bash
-npm run db:up        # start PostgreSQL container
+npm run db:up        # start only the PostgreSQL container (local dev)
 npm run db:down      # stop PostgreSQL container
 npm run db:generate  # generate migrations from schema changes
 npm run db:migrate   # apply pending migrations

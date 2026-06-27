@@ -15,17 +15,28 @@ Online radio station web app. Plays a live SomaFM stream and shows now-playing m
 ## Key files
 
 - `server.js` — Express server, all API routes, metadata polling loop
+- `entrypoint.sh` — runs `scripts/migrate.js` then starts the server (used by Docker)
+- `scripts/migrate.js` — migration runner using drizzle-orm directly (no drizzle-kit needed at runtime)
 - `src/db/schema.ts` — Drizzle schema (`users`, `ratings` tables)
 - `drizzle/` — generated migrations
 - `public/index.html` — frontend markup only
 - `public/styles.css` — all CSS (brand tokens, themes, layout)
-- `public/app.js` — all client-side JS (stream, ratings, metadata polling)
-- `docker-compose.yml` — PostgreSQL container
+- `public/app.js` — all client-side JS (stream, ratings, metadata polling); ES module with exports for testing
+- `Dockerfile` — multi-stage build: `dev` (all deps, `node --watch`) and `prod` (`--omit=dev`, no watch)
+- `docker-compose.yml` — production full stack: app + postgres, self-contained
+- `docker-compose.dev.yml` — dev overrides: source volume mount, hot reload, exposes postgres port
 
 ## Running the project
 
+**With Docker (self-contained):**
 ```bash
-npm run db:up   # start PostgreSQL in Docker (required first)
+npm run docker:prod  # production
+npm run docker:dev   # development with hot reload
+```
+
+**Locally (requires .env.local with DATABASE_URL):**
+```bash
+npm run db:up   # start only PostgreSQL in Docker
 npm start       # start Express server at http://localhost:3001
 ```
 
@@ -56,4 +67,6 @@ Ratings are persisted to PostgreSQL. Schema lives in `src/db/schema.ts`. The `us
 
 - Next.js is installed but not used as the active server — don't suggest migrating to it unless asked.
 - Prefer staying in JavaScript/Node for new features.
-- `.env.local` holds `DATABASE_URL`; scripts load it via `--env-file=.env.local`.
+- `.env.local` holds `DATABASE_URL` for local dev; Docker passes it as an environment variable directly.
+- `scripts/migrate.js` uses `drizzle-orm` (a prod dependency) — not `drizzle-kit` (dev only) — so migrations work in the prod Docker image without dev dependencies installed.
+- `public/app.js` is an ES module; browser init is guarded with `if (!import.meta.env?.TEST)` so Vitest can import and test its exported functions without side effects.
