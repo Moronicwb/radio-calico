@@ -11,6 +11,7 @@ Online radio station web app. Plays a live SomaFM stream and shows now-playing m
 - **Frontend:** Plain HTML/CSS/JS served as static files from `public/`
 - **Stream:** `https://ice2.somafm.com/u80s-128-mp3` (SomaFM Underground 80s)
 - **Metadata:** `https://d3d4yli4hf5bmh.cloudfront.net/metadata.json` — polled every 10s
+- **Security:** helmet for HTTP headers; express-rate-limit (10 req/min) on `/api/rate`; `trust proxy 1` set so `req.ip` reflects real client IP behind nginx
 
 ## Key files
 

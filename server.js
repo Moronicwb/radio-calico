@@ -1,4 +1,6 @@
 const express = require("express");
+const helmet = require("helmet");
+const { rateLimit } = require("express-rate-limit");
 const { Pool } = require("pg");
 
 const app = express();
@@ -9,16 +11,25 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const METADATA_URL = "https://d3d4yli4hf5bmh.cloudfront.net/metadata.json";
 const ALBUM_ART_URL = "https://radio3.radio-calico.com/cover.jpg";
 
+// Trust the single nginx proxy in front of us so req.ip reflects the real client IP
+app.set("trust proxy", 1);
+
+app.use(helmet());
 app.use(express.json());
 app.use(express.static("public"));
 
+const rateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  message: { error: "Too many requests, please try again later." },
+});
+app.use("/api/rate", rateLimiter);
+
 // Derive a stable user identifier from IP + User-Agent (no login required)
 function getUserId(req) {
-  const forwarded = req.headers["x-forwarded-for"];
-  const ip = forwarded ? forwarded.split(",")[0].trim() : req.ip;
   const ua = req.headers["user-agent"] || "";
-  // Combine IP + UA so different browsers on the same IP are distinct
-  return `${ip}::${ua}`;
+  // req.ip is trustworthy because trust proxy is set — no need to read X-Forwarded-For manually
+  return `${req.ip}::${ua}`;
 }
 
 // ── Now-playing state ──────────────────────────────────────────────────────

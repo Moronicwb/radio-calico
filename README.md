@@ -10,6 +10,7 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 - **Stream:** SomaFM Underground 80s via HLS
 - **Tests:** Vitest — Node environment for API, jsdom for frontend
 - **Web server:** nginx (reverse proxy + static file serving in production)
+- **Security:** helmet (HTTP security headers) + express-rate-limit (10 votes/min per IP)
 - **Container:** Docker multi-stage image (dev + prod), orchestrated with Docker Compose
 
 ## Project structure
