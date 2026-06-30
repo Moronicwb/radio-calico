@@ -10,6 +10,7 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 - **Stream:** SomaFM Underground 80s via HLS
 - **Tests:** Vitest — Node environment for API, jsdom for frontend
 - **Web server:** nginx (reverse proxy + static file serving in production)
+- **Security:** helmet (HTTP security headers) + express-rate-limit (10 votes/min per IP)
 - **Container:** Docker multi-stage image (dev + prod), orchestrated with Docker Compose
 
 ## Project structure
@@ -55,6 +56,7 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 | `make test-coverage` | Run Vitest with coverage report |
 | `make security` | Run `npm audit` (fails on high/critical only) |
 | `make db-up` | Start only PostgreSQL |
+| `make db-down` | Stop only PostgreSQL |
 | `make db-migrate` | Apply pending migrations |
 | `make db-studio` | Open Drizzle Studio |
 | `make down` | Stop all containers |
@@ -122,12 +124,12 @@ User identity is derived server-side from IP + User-Agent — no login required.
 ## Database commands
 
 ```bash
-make db-up       # start only the PostgreSQL container (local dev)
-make db-down     # stop PostgreSQL container
-make down        # stop all containers
+make db-up           # start only the PostgreSQL container (local dev)
+make db-down         # stop only the PostgreSQL container
+make down            # stop all containers
 npm run db:generate  # generate migrations from schema changes
-make db-migrate  # apply pending migrations
-make db-studio   # open Drizzle Studio
+make db-migrate      # apply pending migrations
+make db-studio       # open Drizzle Studio
 ```
 
 ## Testing
@@ -144,8 +146,15 @@ The test database (`radiocalico_test`) is created and migrated automatically on 
 ```bash
 make test           # run all tests once
 make test-coverage  # with coverage report
-make security       # run npm audit (fails on high/critical only)
 npm test -- --watch # watch mode
 ```
 
-> **Note:** PostgreSQL must be running (`npm run db:up`) before running tests.
+> **Note:** PostgreSQL must be running (`make db-up`) before running tests.
+
+## Security
+
+```bash
+make security  # runs npm audit, fails on high/critical vulnerabilities only
+```
+
+HTTP security headers (CSP, HSTS, X-Frame-Options, and others) are set automatically by [helmet](https://helmetjs.github.io). The `/api/rate` endpoint is rate-limited to 10 requests per minute per IP.
