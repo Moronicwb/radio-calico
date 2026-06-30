@@ -62,7 +62,7 @@ export function applyNowPlaying(data) {
       placeholder.style.display = "none";
       img.style.display = "block";
     };
-    img.src = `${data.albumArt}?t=${Date.now()}`;
+    img.src = data._artCacheBust ? `${data.albumArt}?t=${data._artCacheBust}` : data.albumArt;
   }
 
   loadRatings();
@@ -74,6 +74,8 @@ export async function loadNowPlaying() {
 
   if (trackId !== currentTrackId) {
     currentTrackId = trackId;
+    // Bust the album art cache only when the track changes, not every poll
+    data._artCacheBust = Date.now();
     // Delay UI update so the audio stream has time to switch tracks
     setTimeout(() => applyNowPlaying(data), TRACK_CHANGE_DELAY_MS);
   } else {
