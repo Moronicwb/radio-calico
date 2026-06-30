@@ -62,6 +62,12 @@ async function fetchMetadata() {
 }
 
 
+function aggregateCounts(rows) {
+  const result = { up: 0, down: 0 };
+  for (const row of rows) result[row.rating] = parseInt(row.count, 10);
+  return result;
+}
+
 // ── Routes ─────────────────────────────────────────────────────────────────
 app.get("/api/now-playing", (req, res) => {
   res.json(nowPlaying ?? { artist: "Loading…", title: "", album: "", sourceQuality: "", streamQuality: "", albumArt: null });
@@ -90,8 +96,7 @@ app.get("/api/ratings", async (req, res) => {
     ),
   ]);
 
-  const result = { up: 0, down: 0, userRating: null };
-  for (const row of counts.rows) result[row.rating] = parseInt(row.count, 10);
+  const result = { ...aggregateCounts(counts.rows), userRating: null };
   if (existing.rows.length) result.userRating = existing.rows[0].rating;
 
   res.json(result);
@@ -120,10 +125,8 @@ app.post("/api/rate", async (req, res) => {
     `SELECT rating, COUNT(*) AS count FROM ratings WHERE track_id = $1 GROUP BY rating`,
     [trackId]
   );
-  const result = { up: 0, down: 0, userRating: rating };
-  for (const row of counts.rows) result[row.rating] = parseInt(row.count, 10);
 
-  res.json(result);
+  res.json({ ...aggregateCounts(counts.rows), userRating: rating });
 });
 
 if (require.main === module) {
