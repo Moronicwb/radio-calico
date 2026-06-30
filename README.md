@@ -9,6 +9,7 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 - **Frontend:** Plain HTML, CSS, and JavaScript (`public/`)
 - **Stream:** SomaFM Underground 80s via HLS
 - **Tests:** Vitest — Node environment for API, jsdom for frontend
+- **Web server:** nginx (reverse proxy + static file serving in production)
 - **Container:** Docker multi-stage image (dev + prod), orchestrated with Docker Compose
 
 ## Project structure
@@ -34,9 +35,12 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 │   └── setup/
 │       ├── db-global.ts       # Creates radiocalico_test DB and runs migrations
 │       └── db-each.ts         # Truncates ratings table before each test
+├── nginx/
+│   └── nginx.conf             # nginx: serves public/ and proxies /api/ to Express
 ├── Dockerfile                 # Multi-stage build: dev and prod targets
-├── docker-compose.yml         # Production: app + postgres, fully self-contained
+├── docker-compose.yml         # Production: nginx + app + postgres, self-contained
 ├── docker-compose.dev.yml     # Dev overrides: source volume mount, hot reload
+├── Makefile                   # Shortcuts: make prod / dev / test / down
 ├── vitest.config.ts           # Two-project Vitest config (node + jsdom)
 └── drizzle.config.ts          # Drizzle Kit config
 ```
@@ -45,21 +49,19 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 
 No local Node.js or PostgreSQL required — Docker handles everything.
 
-**Production:**
+**Production** (nginx on port 80 + Express + PostgreSQL):
 ```bash
-npm run docker:prod
-# or directly:
-docker compose up --build
+make prod
 ```
 
 **Development** (source files are mounted; saving `server.js` restarts the server automatically):
 ```bash
-npm run docker:dev
-# or directly:
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+make dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001).
+Open [http://localhost](http://localhost).
+
+In production, nginx serves static files from `public/` directly and proxies `/api/` requests to the Express backend. The Express server is not exposed on any host port.
 
 Migrations run automatically on startup via `entrypoint.sh`.
 
@@ -106,11 +108,12 @@ User identity is derived server-side from IP + User-Agent — no login required.
 ## Database commands
 
 ```bash
-npm run db:up        # start only the PostgreSQL container (local dev)
-npm run db:down      # stop PostgreSQL container
+make db-up       # start only the PostgreSQL container (local dev)
+make db-down     # stop PostgreSQL container
+make down        # stop all containers
 npm run db:generate  # generate migrations from schema changes
-npm run db:migrate   # apply pending migrations
-npm run db:studio    # open Drizzle Studio
+make db-migrate  # apply pending migrations
+make db-studio   # open Drizzle Studio
 ```
 
 ## Testing
@@ -125,9 +128,9 @@ Tests use [Vitest](https://vitest.dev) with two environments:
 The test database (`radiocalico_test`) is created and migrated automatically on first run.
 
 ```bash
-npm test                # run all tests once
-npm test -- --watch     # watch mode
-npm run test:coverage   # with coverage report
+make test           # run all tests once
+make test-coverage  # with coverage report
+npm test -- --watch # watch mode
 ```
 
 > **Note:** PostgreSQL must be running (`npm run db:up`) before running tests.
