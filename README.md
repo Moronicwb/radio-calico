@@ -11,7 +11,8 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 - **Tests:** Vitest — Node environment for API, jsdom for frontend
 - **Web server:** nginx (reverse proxy + static file serving in production)
 - **Security:** helmet (HTTP security headers) + express-rate-limit (10 votes/min per IP)
-- **Container:** Docker multi-stage image (dev + prod), orchestrated with Docker Compose
+- **Build:** esbuild — minifies JS and CSS into `dist/` for production
+- **Container:** Docker multi-stage image (dev / build / prod / nginx-prod), orchestrated with Docker Compose
 
 ## Project structure
 
@@ -19,7 +20,8 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 ├── server.js                  # Express server, API routes, metadata polling
 ├── entrypoint.sh              # Runs migrations then starts the server
 ├── scripts/
-│   └── migrate.js             # Migration runner (used by Docker entrypoint)
+│   ├── migrate.js             # Migration runner (used by Docker entrypoint)
+│   └── build.js               # esbuild pipeline: minifies JS+CSS, copies assets to dist/
 ├── public/
 │   ├── index.html             # Markup
 │   ├── styles.css             # All CSS (brand tokens, themes, layout)
@@ -37,11 +39,11 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 │       ├── db-global.ts       # Creates radiocalico_test DB and runs migrations
 │       └── db-each.ts         # Truncates ratings table before each test
 ├── nginx/
-│   └── nginx.conf             # nginx: serves public/ and proxies /api/ to Express
-├── Dockerfile                 # Multi-stage build: dev and prod targets
+│   └── nginx.conf             # nginx: serves dist/ with gzip, caching, /api/ proxy
+├── Dockerfile                 # Multi-stage: dev / build / prod (Express) / nginx-prod
 ├── docker-compose.yml         # Production: nginx + app + postgres, self-contained
 ├── docker-compose.dev.yml     # Dev overrides: source volume mount, hot reload
-├── Makefile                   # Shortcuts: make prod / dev / test / security / down
+├── Makefile                   # Shortcuts: make prod / dev / build / test / security / down
 ├── vitest.config.ts           # Two-project Vitest config (node + jsdom)
 └── drizzle.config.ts          # Drizzle Kit config
 ```
@@ -50,8 +52,9 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 
 | Command | What it does |
 |---|---|
-| `make prod` | Start full stack (nginx + app + postgres) with build |
-| `make dev` | Start with hot reload and source volume mount |
+| `make prod` | Build and start full stack (nginx + app + postgres) |
+| `make dev` | Start with hot reload, no build step needed |
+| `make build` | Minify JS + CSS into `dist/` via esbuild |
 | `make test` | Run Vitest |
 | `make test-coverage` | Run Vitest with coverage report |
 | `make security` | Run `npm audit` (fails on high/critical only) |
@@ -77,7 +80,7 @@ make dev
 
 Open [http://localhost](http://localhost).
 
-In production, nginx serves static files from `public/` directly and proxies `/api/` requests to the Express backend. The Express server is not exposed on any host port.
+In production, the Docker build minifies `public/app.js` and `public/styles.css` into `dist/` via esbuild, then bakes those files into the nginx image. nginx serves the minified assets with gzip compression and long-term cache headers, and proxies `/api/` to the Express backend. The Express server is not exposed on any host port.
 
 Migrations run automatically on startup via `entrypoint.sh`.
 
