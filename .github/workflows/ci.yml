@@ -38,7 +38,7 @@ jobs:
 
       - run: npm ci
 
-      - run: npm test
+      - run: make test
 
   security:
     name: Security scan
@@ -54,4 +54,4 @@ jobs:
 
       - run: npm ci
 
-      - run: npm audit --audit-level=high
+      - run: make security
