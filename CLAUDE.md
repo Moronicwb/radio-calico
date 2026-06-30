@@ -22,30 +22,32 @@ Online radio station web app. Plays a live SomaFM stream and shows now-playing m
 - `public/index.html` — frontend markup only
 - `public/styles.css` — all CSS (brand tokens, themes, layout)
 - `public/app.js` — all client-side JS (stream, ratings, metadata polling); ES module with exports for testing
+- `nginx/nginx.conf` — nginx config: serves `public/` statically, proxies `/api/` to Express
+- `Makefile` — make targets: `prod`, `dev`, `test`, `test-coverage`, `db-up`, `db-migrate`, `db-studio`, `down`
 - `Dockerfile` — multi-stage build: `dev` (all deps, `node --watch`) and `prod` (`--omit=dev`, no watch)
-- `docker-compose.yml` — production full stack: app + postgres, self-contained
+- `docker-compose.yml` — production full stack: nginx + app + postgres, self-contained
 - `docker-compose.dev.yml` — dev overrides: source volume mount, hot reload, exposes postgres port
 
 ## Running the project
 
 **With Docker (self-contained):**
 ```bash
-npm run docker:prod  # production
-npm run docker:dev   # development with hot reload
+make prod  # production — nginx on http://localhost, Express internal only
+make dev   # development with hot reload
 ```
 
 **Locally (requires .env.local with DATABASE_URL):**
 ```bash
-npm run db:up   # start only PostgreSQL in Docker
-npm start       # start Express server at http://localhost:3001
+make db-up  # start only PostgreSQL in Docker
+npm start   # start Express server at http://localhost:3001
 ```
 
 Other DB commands:
 ```bash
 npm run db:generate  # generate migrations from schema changes
-npm run db:migrate   # apply migrations
-npm run db:studio    # open Drizzle Studio
-npm run db:down      # stop PostgreSQL container
+make db-migrate      # apply migrations
+make db-studio       # open Drizzle Studio
+make db-down         # stop PostgreSQL container
 ```
 
 ## API routes
