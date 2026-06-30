@@ -24,7 +24,7 @@ Online radio station web app. Plays a live SomaFM stream and shows now-playing m
 - `public/styles.css` — all CSS (brand tokens, themes, layout)
 - `public/app.js` — all client-side JS (stream, ratings, metadata polling); ES module with exports for testing
 - `nginx/nginx.conf` — nginx config: serves `public/` statically, proxies `/api/` to Express
-- `Makefile` — make targets: `prod`, `dev`, `test`, `test-coverage`, `security`, `db-up`, `db-migrate`, `db-studio`, `down`
+- `Makefile` — make targets: `prod`, `dev`, `test`, `test-coverage`, `security`, `db-up`, `db-down` (postgres only), `db-migrate`, `db-studio`, `down` (all containers)
 - `Dockerfile` — multi-stage build: `dev` (all deps, `node --watch`) and `prod` (`--omit=dev`, no watch)
 - `docker-compose.yml` — production full stack: nginx + app + postgres, self-contained
 - `docker-compose.dev.yml` — dev overrides: source volume mount, hot reload, exposes postgres port

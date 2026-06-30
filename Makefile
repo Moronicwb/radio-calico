@@ -21,7 +21,7 @@ db-up:
 	docker compose up -d postgres
 
 db-down:
-	docker compose down
+	docker compose stop postgres
 
 db-migrate:
 	npm run db:migrate
