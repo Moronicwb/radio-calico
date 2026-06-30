@@ -1,10 +1,13 @@
-.PHONY: prod dev test test-coverage security db-up db-down db-migrate db-studio down
+.PHONY: prod dev build test test-coverage security db-up db-down db-migrate db-studio down
 
 prod:
 	docker compose up --build
 
 dev:
 	docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+build:
+	npm run build
 
 test:
 	npm test
