@@ -45,6 +45,20 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 └── drizzle.config.ts          # Drizzle Kit config
 ```
 
+## Make targets
+
+| Command | What it does |
+|---|---|
+| `make prod` | Start full stack (nginx + app + postgres) with build |
+| `make dev` | Start with hot reload and source volume mount |
+| `make test` | Run Vitest |
+| `make test-coverage` | Run Vitest with coverage report |
+| `make security` | Run `npm audit` (fails on high/critical only) |
+| `make db-up` | Start only PostgreSQL |
+| `make db-migrate` | Apply pending migrations |
+| `make db-studio` | Open Drizzle Studio |
+| `make down` | Stop all containers |
+
 ## Running with Docker (recommended)
 
 No local Node.js or PostgreSQL required — Docker handles everything.
