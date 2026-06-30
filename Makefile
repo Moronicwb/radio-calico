@@ -1,4 +1,4 @@
-.PHONY: prod dev test test-coverage db-up db-down db-migrate db-studio down
+.PHONY: prod dev test test-coverage security db-up db-down db-migrate db-studio down
 
 prod:
 	docker compose up --build
@@ -11,6 +11,11 @@ test:
 
 test-coverage:
 	npm run test:coverage
+
+# Fails on high/critical only — existing moderate issues in drizzle-kit and next
+# are unfixable without breaking version downgrades (not runtime risks).
+security:
+	npm audit --audit-level=high
 
 db-up:
 	docker compose up -d postgres

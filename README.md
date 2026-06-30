@@ -40,10 +40,24 @@ An online radio station web app that plays a live SomaFM stream with real-time n
 ├── Dockerfile                 # Multi-stage build: dev and prod targets
 ├── docker-compose.yml         # Production: nginx + app + postgres, self-contained
 ├── docker-compose.dev.yml     # Dev overrides: source volume mount, hot reload
-├── Makefile                   # Shortcuts: make prod / dev / test / down
+├── Makefile                   # Shortcuts: make prod / dev / test / security / down
 ├── vitest.config.ts           # Two-project Vitest config (node + jsdom)
 └── drizzle.config.ts          # Drizzle Kit config
 ```
+
+## Make targets
+
+| Command | What it does |
+|---|---|
+| `make prod` | Start full stack (nginx + app + postgres) with build |
+| `make dev` | Start with hot reload and source volume mount |
+| `make test` | Run Vitest |
+| `make test-coverage` | Run Vitest with coverage report |
+| `make security` | Run `npm audit` (fails on high/critical only) |
+| `make db-up` | Start only PostgreSQL |
+| `make db-migrate` | Apply pending migrations |
+| `make db-studio` | Open Drizzle Studio |
+| `make down` | Stop all containers |
 
 ## Running with Docker (recommended)
 
@@ -130,6 +144,7 @@ The test database (`radiocalico_test`) is created and migrated automatically on 
 ```bash
 make test           # run all tests once
 make test-coverage  # with coverage report
+make security       # run npm audit (fails on high/critical only)
 npm test -- --watch # watch mode
 ```
 
