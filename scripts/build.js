@@ -10,20 +10,12 @@ const OUT = path.join(__dirname, "../dist");
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 
-// Minify JS
-esbuild.buildSync({
-  entryPoints: [path.join(SRC, "app.js")],
-  outfile: path.join(OUT, "app.js"),
-  minify: true,
-  target: "es2020",
-});
+function buildAsset(src, out, extras = {}) {
+  esbuild.buildSync({ entryPoints: [src], outfile: out, minify: true, ...extras });
+}
 
-// Minify CSS
-esbuild.buildSync({
-  entryPoints: [path.join(SRC, "styles.css")],
-  outfile: path.join(OUT, "styles.css"),
-  minify: true,
-});
+buildAsset(path.join(SRC, "app.js"),     path.join(OUT, "app.js"),     { target: "es2020" });
+buildAsset(path.join(SRC, "styles.css"), path.join(OUT, "styles.css"));
 
 // Copy everything else (HTML, images, fonts, etc.)
 const skip = new Set(["app.js", "styles.css"]);
